@@ -1,0 +1,99 @@
+#! /usr/bin/env python3
+# encoding: utf-8
+# pylint: disable=W0201,C0111,R0901,R0902
+'''Dette er en docstring'''
+
+import time
+import npyscreen
+import api
+
+def get_time():
+    '''Get current time formatted as hour:minute:second.'''
+    return time.strftime('%H:%M:%S')
+
+class Sanntid(npyscreen.NPSAppManaged):
+    '''The main app. Start by calling Sanntid().run()'''
+    def onStart(self):
+        self.keypress_timeout_default = 1
+        self.addForm("MAIN", MainForm, name="Sanntid")
+
+class Search(npyscreen.TitleText):
+    '''A widget containing a search field'''
+    edited = False
+
+    def when_value_edited(self):
+        self.edited = True
+
+    def when_parent_changes_value(self):
+        pass
+
+class MainForm(npyscreen.Form):
+    option_list = list()
+
+    def create(self):
+        self.current_time_widget = self.add(npyscreen.TitleFixedText,
+                                            name="Time:",
+                                            value=get_time(),
+                                            editable=False
+                                            )
+        self.search_widget = self.add(Search, name='Søk: ')
+        self.nextrelx += 1
+
+        self.popup_list = npyscreen.Popup(name="Velg stoppested",)
+        self.search_results = self.popup_list.add(npyscreen.TitleSelectOne,
+                                                  scroll_exit=False,
+                                                  max_height=6,
+                                                  name='Stoppested',
+                                                  values=self.option_list
+                                                  )
+        self.nextrely += 1
+        self.info_box = self.add(npyscreen.BoxTitle,
+                                 name="",
+                                 max_height=16,
+                                 max_width=74,
+                                 editable=True,
+                                 hidden=True,
+                                 contained_widget_arguments={
+                                     'editable': False,
+                                     'allow_filtering': False,
+                                 },
+                                 )
+        self.info_box.entry_widget.slow_scroll = True
+
+    def while_waiting(self):
+        self.current_time_widget.value = get_time()
+        self.display()
+        self.info_box.update()
+
+    def while_editing(self, *args, **keywords):
+        if self.search_widget.edited is False:
+            return
+        self.search_widget.edited = False
+        if not self.search_widget.value:
+            return
+        self.option_list = api.search(self.search_widget.value)
+        self.search_results.values = self.option_list
+        self.popup_list.edit()
+        if self.search_results.get_selected_objects():
+            selected = self.search_results.get_selected_objects()[0]
+            self.search_widget.value = ''
+            self.info_box.name = str(selected)
+            entries = api.by_platform(selected.stop_id)
+            departures = list()
+            for plt, deps in sorted(entries.items()):
+                departures.append('{}'.format('Plattform ' + plt,))
+                for departure in deps:
+                    departures.append(str(departure))
+                    if departure.avvik:
+                        for dev in departure.avvik:
+                            departures.append('{:4s} {}'.format('', dev))
+                departures.append('')
+            self.info_box.values = departures
+            self.info_box.hidden = False
+
+    def afterEditing(self):
+        # pylint: disable=C0103
+        self.parentApp.setNextForm(None)
+
+if __name__ == "__main__":
+    Sanntid().run()
