@@ -30,7 +30,7 @@ class Avgang:
         return "Avgang()"
 
     def __str__(self):
-        return '{:>4s} {:15s} {}'.format(
+        return '{:>4s} {:20s} {}'.format(
             self.linjenr,
             self.navn,
             self.tid,
