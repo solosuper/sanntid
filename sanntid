@@ -56,9 +56,9 @@ class MainForm(npyscreen.Form):
                                  contained_widget_arguments={
                                      'editable': False,
                                      'allow_filtering': False,
+                                     'slow_scroll': True,
                                  },
                                  )
-        self.info_box.entry_widget.slow_scroll = True
 
     def while_waiting(self):
         self.current_time_widget.value = get_time()
@@ -82,7 +82,7 @@ class MainForm(npyscreen.Form):
             departures = list()
             for plt, deps in sorted(entries.items()):
                 departures.append('{}'.format('Plattform ' + plt,))
-                for departure in deps:
+                for departure in deps[:5]:
                     departures.append(str(departure))
                     if departure.avvik:
                         for dev in departure.avvik:
